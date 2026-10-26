@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Red Sox Value Index | Baseball Analytics</title>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<style>
+:root{--navy:#002F6C;--navy2:#071d3b;--red:#D9485F;--green:#27865C;--ink:#172235;--muted:#667085;--line:#e5eaf1;--bg:#f4f7fb;--card:#fff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.5}
+.hero{background:linear-gradient(125deg,#061a35 0%,#002f6c 68%,#164b8c 100%);color:white;padding:42px max(22px,calc((100vw - 1240px)/2)) 38px}
+.eyebrow{text-transform:uppercase;letter-spacing:.17em;font-size:.74rem;font-weight:800;color:#b9d6ff}.hero h1{font-size:clamp(2rem,4vw,3.45rem);line-height:1.05;margin:12px 0 14px;letter-spacing:-.04em}.hero p{max-width:750px;color:#e0eaff;margin:0;font-size:1.03rem}
+.hero-meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}.pill{border:1px solid #ffffff4d;border-radius:999px;padding:6px 11px;font-size:.8rem;color:#f2f6ff}
+main{max-width:1240px;margin:26px auto;padding:0 20px 56px}.section-head{display:flex;justify-content:space-between;gap:18px;align-items:end;margin:28px 0 14px}.section-head h2{font-size:1.28rem;margin:0;color:var(--navy)}.section-head p{margin:4px 0 0;color:var(--muted);font-size:.9rem}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.metric,.panel,.card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 4px 16px #142b4a08}.metric{padding:17px 18px}.metric .label{font-size:.78rem;color:var(--muted);font-weight:700}.metric .value{font-size:1.7rem;font-weight:800;letter-spacing:-.04em;margin-top:5px;color:var(--navy)}.metric .hint{font-size:.78rem;color:var(--muted);margin-top:2px}
+.analysis-grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(280px,.85fr);gap:16px;align-items:start}.panel{padding:18px;min-width:0}.panel h3{margin:0;color:var(--navy);font-size:1.04rem}.sub{color:var(--muted);font-size:.83rem;margin:4px 0 12px}
+.legend{display:flex;gap:15px;flex-wrap:wrap;font-size:.8rem;color:#465166;margin:8px 0 4px}.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}
+#chart{height:440px;width:100%}.profile{min-height:420px}.player-name{font-size:1.5rem;font-weight:800;color:var(--navy);margin:4px 0 0}.position{color:var(--muted);font-size:.88rem;margin-bottom:18px}.profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.stat{border:1px solid var(--line);border-radius:12px;padding:12px}.stat .label{font-size:.73rem;color:var(--muted);font-weight:700}.stat .value{font-size:1.15rem;font-weight:800;margin-top:3px;overflow-wrap:anywhere}.verdict{display:inline-block;border-radius:999px;padding:6px 11px;font-size:.8rem;font-weight:800;margin-top:15px}
+.leaderboards{display:grid;grid-template-columns:1fr 1fr;gap:16px}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:.87rem}th{text-align:left;color:var(--muted);font-size:.73rem;text-transform:uppercase;letter-spacing:.06em;padding:10px 8px;border-bottom:1px solid var(--line)}td{padding:11px 8px;border-bottom:1px solid #edf0f5}tbody tr:last-child td{border-bottom:0}tbody tr{cursor:pointer}tbody tr:hover{background:#f5f8fc}.positive{color:var(--green);font-weight:800}.negative{color:var(--red);font-weight:800}
+.insights{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.insight{padding:17px}.insight h4{margin:0 0 7px;color:var(--navy)}.insight p{margin:0;color:#566176;font-size:.9rem}
+details{background:white;border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-top:14px}summary{font-weight:800;color:var(--navy);cursor:pointer}details p,details li{font-size:.9rem;color:#566176}.footer{border-top:1px solid var(--line);padding:20px 0;color:var(--muted);font-size:.8rem;margin-top:30px}
+.notice{padding:14px 16px;border-radius:12px;background:#fff7e6;border:1px solid #f3d99a;color:#785416;margin:16px 0}.error{background:#fff0f1;border-color:#f4b8c0;color:#9b2638}.hidden{display:none}
+@media(max-width:850px){.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.analysis-grid{grid-template-columns:1fr}.leaderboards{grid-template-columns:1fr}.insights{grid-template-columns:1fr}.hero{padding-top:32px}#chart{height:390px}}
+@media(max-width:480px){main{padding:0 12px 36px}.metrics{gap:8px}.metric{padding:13px}.metric .value{font-size:1.35rem}.panel{padding:13px}.profile-grid{gap:8px}.stat{padding:9px}}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="eyebrow">Baseball · Economics · Analytics</div>
+  <h1>Red Sox Value Index</h1>
+  <p>Exploring the relationship between player salary and on-field production. This interactive dashboard compares 2026 Boston Red Sox salaries with an estimated dollar value derived from FanGraphs WAR.</p>
+  <div class="hero-meta"><span class="pill">2026 season</span><span class="pill">Salary vs. estimated value</span><span class="pill">Interactive player profiles</span></div>
+</header>
+<main>
+  <div id="loadNotice" class="notice">Loading player data from <code>data.csv</code>…</div>
+  <div id="errorNotice" class="notice error hidden"></div>
+  <section class="metrics" aria-label="Summary metrics">
+    <div class="metric"><div class="label">Players in dataset</div><div class="value" id="metricPlayers">—</div><div class="hint">Included in this analysis</div></div>
+    <div class="metric"><div class="label">Total salary</div><div class="value" id="metricSalary">—</div><div class="hint">Combined listed salaries</div></div>
+    <div class="metric"><div class="label">Undervalued players</div><div class="value" id="metricUnder">—</div><div class="hint">Estimated surplus above $2M</div></div>
+    <div class="metric"><div class="label">Overvalued players</div><div class="value" id="metricOver">—</div><div class="hint">Estimated surplus below −$2M</div></div>
+  </section>
+
+  <div class="section-head"><div><h2>Player value analysis</h2><p>Choose a dot to inspect a player. Points below the diagonal have estimated value below salary.</p></div></div>
+  <section class="analysis-grid">
+    <div class="panel">
+      <h3>Salary vs. estimated value</h3><div class="sub">Each dot represents a player. The dashed line marks salary = estimated value.</div>
+      <div class="legend"><span><i class="dot" style="background:#27865C"></i>Undervalued</span><span><i class="dot" style="background:#D9485F"></i>Overvalued</span><span><i class="dot" style="background:#888"></i>Fairly valued</span></div>
+      <div id="chart"></div>
+    </div>
+    <aside class="panel profile" id="profile">
+      <h3>Player profile</h3><div class="sub">Select a point on the chart or a player in a leaderboard.</div>
+      <div class="player-name" id="pName">Select a player</div><div class="position" id="pPosition">—</div>
+      <div class="profile-grid">
+        <div class="stat"><div class="label">2026 salary</div><div class="value" id="pSalary">—</div></div>
+        <div class="stat"><div class="label">FanGraphs WAR (fWAR)</div><div class="value" id="pWar">—</div></div>
+        <div class="stat"><div class="label">Estimated value</div><div class="value" id="pValue">—</div></div>
+        <div class="stat"><div class="label">Surplus value</div><div class="value" id="pSurplus">—</div></div>
+        <div class="stat"><div class="label">Batting average</div><div class="value" id="pAvg">—</div></div>
+        <div class="stat"><div class="label">ERA</div><div class="value" id="pEra">—</div></div>
+      </div>
+      <div id="pVerdict" class="verdict" style="background:#eee;color:#555">Choose a player</div>
+    </aside>
+  </section>
+
+  <div class="section-head"><div><h2>Value leaderboards</h2><p>Ranked by estimated surplus value, using the model assumptions described below.</p></div></div>
+  <section class="leaderboards">
+    <div class="panel"><h3>Most undervalued</h3><div class="sub">Highest estimated surplus value</div><div class="table-wrap"><table><thead><tr><th>Player</th><th>Position</th><th>Surplus</th></tr></thead><tbody id="underTable"></tbody></table></div></div>
+    <div class="panel"><h3>Most overvalued</h3><div class="sub">Lowest estimated surplus value</div><div class="table-wrap"><table><thead><tr><th>Player</th><th>Position</th><th>Surplus</th></tr></thead><tbody id="overTable"></tbody></table></div></div>
+  </section>
+
+  <div class="section-head"><div><h2>Key insights</h2><p>A quick read of the dataset — updated automatically when the data file changes.</p></div></div>
+  <section class="insights">
+    <div class="card insight"><h4>Value leaders</h4><p id="insightLeader">Waiting for player data.</p></div>
+    <div class="card insight"><h4>Estimated team surplus</h4><p id="insightSurplus">Waiting for player data.</p></div>
+    <div class="card insight"><h4>Model perspective</h4><p>This is a simplified comparison of salary and estimated WAR-based value, not a prediction of future performance or a complete measure of a player's contribution.</p></div>
+  </section>
+
+  <details><summary>Methodology &amp; limitations</summary>
+    <p><strong>Estimated value:</strong> FanGraphs WAR (fWAR) multiplied by an assumed market rate of <strong>$8 million per WAR</strong>.</p>
+    <p><strong>Surplus value:</strong> estimated value minus listed 2026 salary. A positive number indicates estimated production value exceeds salary under this model; a negative number indicates salary exceeds estimated value.</p>
+    <p><strong>Verdict thresholds:</strong> undervalued when surplus is greater than $2 million; fairly valued from −$2 million through +$2 million; overvalued when surplus is below −$2 million.</p>
+    <p><strong>Limitations:</strong> WAR is an estimate, the dollar-per-WAR rate is an assumption, salary figures may not capture every contract detail, and a single-season comparison does not account for defense, role, playing time, injuries, age, contract length, team control, or future performance uncertainty. Missing values are not treated as zero.</p>
+  </details>
+  <details><summary>Sources &amp; data notes</summary>
+    <p>Player salary, FanGraphs WAR, batting average, and ERA values should be documented in the CSV supplied with this site. Verify all figures against current primary or reputable baseball data sources before using the analysis in a formal decision-making context.</p>
+    <p>This dashboard is an independent educational project and is not affiliated with the Boston Red Sox or Major League Baseball.</p>
+  </details>
+  <footer class="footer">Red Sox Value Index · Independent baseball analytics portfolio project · Built for exploration, not as an official team valuation.</footer>
+</main>
+<script>
+const money = v => Number.isFinite(v) ? v.toLocaleString('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}) : 'N/A';
+const shortMoney = v => Number.isFinite(v) ? (v<0?'−':'')+'$'+(Math.abs(v)/1e6).toFixed(1)+'M' : 'N/A';
+const num = v => { if(v===null || v===undefined || String(v).trim()==='') return NaN; const n=Number(String(v).replace(/[$,%]/g,'').trim()); return Number.isFinite(n)?n:NaN; };
+const pick = (row, keys) => { for(const k of keys){ if(row[k]!==undefined && row[k]!==null && String(row[k]).trim()!=='') return row[k]; } return ''; };
+let players=[], selected=null;
+function normalise(row){
+  const name=String(pick(row,['player name','player_name','Player','Name','name'])).trim();
+  const salary=num(pick(row,['salary_26','salary_2026_usd','salary','2026 salary']));
+  const war=num(pick(row,['fwar_26','fwar_2026','fwar_2026','fwar','WAR']));
+  let value=num(pick(row,['estimated_value_usd','estimated_value']));
+  let surplus=num(pick(row,['surplus_value_usd','surplus_value']));
+  const rate=num(pick(row,['dollar_per_war_usd','dollar_per_war'])) || 8000000;
+  if(!Number.isFinite(value)&&Number.isFinite(war)) value=war*rate;
+  if(!Number.isFinite(surplus)&&Number.isFinite(value)&&Number.isFinite(salary)) surplus=value-salary;
+  let verdict=String(pick(row,['verdict'])).toLowerCase().trim();
+  if(!verdict && Number.isFinite(surplus)) verdict=surplus>2000000?'undervalued':surplus< -2000000?'overvalued':'fairly valued';
+  const avgRaw=pick(row,['batting_avg_26','batting_avg','avg','BA']);
+  let avg=num(avgRaw);
+  if(Number.isFinite(avg) && avg>1) avg=avg/1000;
+  const era=num(pick(row,['era_26','era','ERA']));
+  return {raw:row,name,position:String(pick(row,['position','pos','Position'])),salary,war,value,surplus,verdict,avg,era,rate};
+}
+function setText(id,value){document.getElementById(id).textContent=value;}
+function verdictColor(v){return v==='undervalued'?'#27865C':v==='overvalued'?'#D9485F':'#888888';}
+function showPlayer(p){
+ selected=p;
+ setText('pName',p.name||'Unknown player'); setText('pPosition',p.position||'Position unavailable');
+ setText('pSalary',money(p.salary));setText('pWar',Number.isFinite(p.war)?p.war.toFixed(1):'N/A');
+ setText('pValue',money(p.value));setText('pSurplus',money(p.surplus));
+ setText('pAvg',Number.isFinite(p.avg)?p.avg.toFixed(3).replace(/^0/,''): 'N/A');
+ setText('pEra',Number.isFinite(p.era)?p.era.toFixed(2):'N/A');
+ const badge=document.getElementById('pVerdict');badge.textContent=p.verdict||'Insufficient data';badge.style.color=verdictColor(p.verdict);badge.style.background=verdictColor(p.verdict)+'18';
+}
+function addRows(id,arr,cls){
+ const tbody=document.getElementById(id);tbody.innerHTML='';
+ if(!arr.length){tbody.innerHTML='<tr><td colspan="3">No complete value data available.</td></tr>';return;}
+ arr.forEach(p=>{const tr=document.createElement('tr');tr.innerHTML=`<td>${escapeHtml(p.name)}</td><td>${escapeHtml(p.position||'—')}</td><td class="${cls}">${money(p.surplus)}</td>`;tr.addEventListener('click',()=>{showPlayer(p);Plotly.Fx.hover('chart',[{curveNumber:0,pointNumber:players.indexOf(p)}]);});tbody.appendChild(tr);});
+}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function render(){
+ const complete=players.filter(p=>Number.isFinite(p.salary)&&Number.isFinite(p.value)&&Number.isFinite(p.surplus));
+ setText('metricPlayers',players.length.toString());
+ setText('metricSalary',shortMoney(players.reduce((s,p)=>s+(Number.isFinite(p.salary)?p.salary:0),0)));
+ setText('metricUnder',players.filter(p=>p.verdict==='undervalued').length.toString());
+ setText('metricOver',players.filter(p=>p.verdict==='overvalued').length.toString());
+ const max=Math.max(1,...complete.map(p=>Math.max(p.salary,p.value)))*1.08;
+ const colors=complete.map(p=>verdictColor(p.verdict));
+ const trace={type:'scatter',mode:'markers',x:complete.map(p=>p.salary),y:complete.map(p=>p.value),text:complete.map(p=>p.name),customdata:complete.map(p=>players.indexOf(p)),marker:{size:12,color:colors,opacity:.9,line:{color:'#fff',width:1.5}},hovertemplate:'<b>%{text}</b><br>Salary: %{x:$,.0f}<br>Estimated value: %{y:$,.0f}<extra></extra>'};
+ const diagonal={type:'scatter',mode:'lines',x:[0,max],y:[0,max],hoverinfo:'skip',line:{color:'#8a94a6',dash:'dash',width:1.5},showlegend:false};
+ Plotly.newPlot('chart',[diagonal,trace],{margin:{l:75,r:20,t:15,b:65},paper_bgcolor:'#fff',plot_bgcolor:'#fff',font:{family:'Inter, sans-serif',color:'#344054'},xaxis:{title:'2026 salary ($)',range:[0,max],tickprefix:'$',tickformat:'~s',gridcolor:'#edf0f5',zeroline:false},yaxis:{title:'Estimated value ($)',range:[0,max],tickprefix:'$',tickformat:'~s',gridcolor:'#edf0f5',zeroline:false},showlegend:false,hovermode:'closest'}, {responsive:true,displaylogo:false}).then(()=>{
+ document.getElementById('chart').on('plotly_click',ev=>{const i=ev.points[0].customdata; if(Number.isInteger(i))showPlayer(players[i]);});
+ });
+ const under=players.filter(p=>p.verdict==='undervalued'&&Number.isFinite(p.surplus)).sort((a,b)=>b.surplus-a.surplus).slice(0,8);
+ const over=players.filter(p=>p.verdict==='overvalued'&&Number.isFinite(p.surplus)).sort((a,b)=>a.surplus-b.surplus).slice(0,8);
+ addRows('underTable',under,'positive');addRows('overTable',over,'negative');
+ const leader=under[0];setText('insightLeader',leader?`${leader.name} leads this dataset with estimated surplus of ${money(leader.surplus)}.`:'Complete WAR, salary, and value fields to identify value leaders.');
+ const totalSurplus=players.reduce((s,p)=>s+(Number.isFinite(p.surplus)?p.surplus:0),0);
+ setText('insightSurplus',complete.length?`${money(totalSurplus)} combined estimated surplus across players with available surplus values.`:'Complete the data fields to calculate estimated team surplus.');
+ if(players.length)showPlayer(selected&&players.includes(selected)?selected:(complete[0]||players[0]));
+}
+Papa.parse('data.csv',{download:true,header:true,skipEmptyLines:true,dynamicTyping:false,complete:results=>{
+ players=results.data.map(normalise).filter(p=>p.name);
+ document.getElementById('loadNotice').classList.add('hidden');
+ if(!players.length){const e=document.getElementById('errorNotice');e.classList.remove('hidden');e.textContent='The data.csv file loaded, but no player names were found. Check the CSV headers.';return;}
+ render();
+},error:err=>{const e=document.getElementById('errorNotice');e.classList.remove('hidden');e.textContent='Could not load data.csv. Make sure your CSV is uploaded into the same repository folder as index.html and named exactly data.csv.';document.getElementById('loadNotice').classList.add('hidden');}});
+</script>
+</body>
+</html>
